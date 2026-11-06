@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Signage Player",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Zeigt auf diesem Monitor die im Admin-Bereich zugewiesenen Inhalte an.",
   "minimum_chrome_version": "120",
   "permissions": ["alarms", "power", "storage", "webNavigation"],
@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["cursor.js"],
+      "js": ["content.js"],
       "all_frames": true,
       "run_at": "document_start"
     }

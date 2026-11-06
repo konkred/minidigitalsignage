@@ -5,7 +5,7 @@ const DATA_DIR = __DIR__ . '/../data';
 const SCREENSHOT_DIR = DATA_DIR . '/screens';
 const SCHEMA_VERSION = 3;
 // Muss zur version in extension/manifest.json passen, sonst meldet der Admin-Bereich eine veraltete Erweiterung.
-const EXTENSION_VERSION = '1.2.0';
+const EXTENSION_VERSION = '1.2.1';
 const PENDING_TTL = 3600;
 const PENDING_MAX = 200;
 const HISTORY_DAYS = 90;

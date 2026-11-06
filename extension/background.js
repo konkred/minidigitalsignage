@@ -62,16 +62,21 @@ async function apply(state, tab) {
     }
 }
 
-async function applyTabSettings(state, tab) {
-    if (state.status !== 'active') {
-        return;
-    }
+async function applyZoom(state, tab) {
     const zoom = (state.zoom ?? 100) / 100;
-    if (Math.abs((await chrome.tabs.getZoom(tab.id)) - zoom) > 0.001) {
+    if (state.status === 'active' && Math.abs((await chrome.tabs.getZoom(tab.id)) - zoom) > 0.001) {
         await chrome.tabs.setZoom(tab.id, zoom);
     }
-    if (Boolean(state.muted) !== Boolean(tab.mutedInfo?.muted)) {
-        await chrome.tabs.update(tab.id, { muted: Boolean(state.muted) });
+}
+
+// Schaltet alle Tabs stumm, nicht nur den erkannten Kiosk-Tab. Zusätzlich stellt
+// content.js die Video- und Audio-Elemente der Seite selbst stumm.
+async function applyMute(state) {
+    const muted = state.status === 'active' && Boolean(state.muted);
+    for (const tab of await chrome.tabs.query({})) {
+        if (Boolean(tab.mutedInfo?.muted) !== muted) {
+            await chrome.tabs.update(tab.id, { muted });
+        }
     }
 }
 
@@ -113,7 +118,8 @@ async function tick() {
         await chrome.storage.local.set({ state });
         const tab = await kioskTab();
         await apply(state, tab);
-        await applyTabSettings(state, tab).catch(() => {});
+        await applyZoom(state, tab).catch(() => {});
+        await applyMute(state).catch(() => {});
         await sendScreenshot(state, tab).catch(() => {});
     } catch (error) {
         console.error('Signage tick failed', error);
