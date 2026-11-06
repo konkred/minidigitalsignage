@@ -45,6 +45,6 @@ Der Admin-Bereich liegt dann unter `http://127.0.0.1:8099/admin/`. Für die Erwe
 - `php -S` bedient ohne `PHP_CLI_SERVER_WORKERS` nur eine Verbindung gleichzeitig. Vorab geöffnete Chrome-Verbindungen können ein lokales Testziel dadurch um Sekunden blockieren.
 - Im Praxistest am 6. Nov. 2026 lief Version 1.0 auf Plesk mit HTTPS (PHP 8.4) und auf einem Monitor mit Windows LTSC inklusive Autostart. Die Testseiten waren eine echte TORIS-Startertafel und YouTube.
 - Version 1.1 lief nach dem Update auch auf dem Windows-Monitor (Chromium). Dort ging das Update erst, nachdem der Ordner an einen beschreibbaren Ort verschoben war.
-- Version 1.2.0: Auf dem Windows-Monitor funktionierte das Ausblenden des Mauszeigers, „Ton aus“ bei YouTube aber nicht; die Ursache ist ungeklärt. 1.2.1 schaltet deshalb alle Tabs und zusätzlich die Medien-Elemente stumm.
+- Version 1.2.0: Auf dem Windows-Monitor funktionierte das Ausblenden des Mauszeigers, „Ton aus“ bei YouTube aber nicht; die Ursache ist ungeklärt. 1.2.1 schaltet deshalb alle Tabs und zusätzlich die Medien-Elemente stumm, damit funktioniert es dort.
 - Version 1.2 (Bildschirm wach halten, Mauszeiger, Ton aus, Vorschau-Wand) ist sonst nur lokal getestet, mit Chrome 156 und einer migrierten Datenbank aus 1.1. Ob `chrome.power` den Bildschirm wirklich wach hält, ist ungetestet.
 - Nicht getestet: die Neustart-Schleife in `start-monitor.bat`, das Linux-Startskript mit echtem Browser, der Mailversand über Plesk.
