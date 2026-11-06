@@ -54,6 +54,7 @@ Geprüft wird bei jeder Anfrage eines Monitors. Fallen alle Monitore gleichzeiti
 ## Monitor einrichten
 
 1. Den Ordner `extension/` und `kiosk/` an einen festen Ort auf den Monitor-PC kopieren. Beide müssen nebeneinander liegen. Ändert sich der Pfad später, gilt der Monitor als neu und zeigt wieder einen Registriercode.
+   Der Ort muss für den angemeldeten Benutzer beschreibbar sein, unter Windows also zum Beispiel `C:\Signage` oder ein Ordner im Benutzerprofil, nicht `C:\Program Files`. Sonst landen Updates eventuell nicht in dem Ordner, aus dem der Browser lädt.
 2. In `extension/config.js` die Serveradresse eintragen.
 3. Die Erweiterung laden:
    - **Chromium:** Nichts zu tun, das Startskript lädt sie automatisch.
