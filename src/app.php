@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 const DATA_DIR = __DIR__ . '/../data';
 const SCREENSHOT_DIR = DATA_DIR . '/screens';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 // Muss zur version in extension/manifest.json passen, sonst meldet der Admin-Bereich eine veraltete Erweiterung.
-const EXTENSION_VERSION = '1.1.0';
+const EXTENSION_VERSION = '1.2.0';
 const PENDING_TTL = 3600;
 const PENDING_MAX = 200;
 const HISTORY_DAYS = 90;
@@ -59,6 +59,8 @@ function migrate(PDO $pdo): void
                 rev INTEGER NOT NULL DEFAULT 1,
                 zoom INTEGER NOT NULL DEFAULT 100,
                 reload_minutes INTEGER NOT NULL DEFAULT 0,
+                muted INTEGER NOT NULL DEFAULT 0,
+                hide_cursor INTEGER NOT NULL DEFAULT 1,
                 ext_version TEXT,
                 browser TEXT,
                 load_failed INTEGER NOT NULL DEFAULT 0,
@@ -94,6 +96,10 @@ function migrate(PDO $pdo): void
             ] as $sql) {
                 $pdo->exec($sql);
             }
+        }
+        if ($hasMonitors && $version < 3) {
+            $pdo->exec('ALTER TABLE monitors ADD COLUMN muted INTEGER NOT NULL DEFAULT 0');
+            $pdo->exec('ALTER TABLE monitors ADD COLUMN hide_cursor INTEGER NOT NULL DEFAULT 1');
         }
         $pdo->exec('CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL)');
         $pdo->exec('CREATE TABLE IF NOT EXISTS history (

@@ -11,9 +11,10 @@ Weist Monitoren zentral eine Webseite, eine Textnachricht oder ein Schwarzbild z
 - Inhalt: Webseite, große Textnachricht, Schwarzbild oder Standby-Bildschirm
 - Änderungen sofort, nach einer Wartezeit oder zu einem Zeitpunkt; geplante Änderungen bearbeiten oder abbrechen
 - Mehrere Monitore auf einmal ändern
-- Live-Vorschau: Jeder Monitor schickt alle 30 Sekunden ein Bildschirmfoto
+- Live-Vorschau: Jeder Monitor schickt alle 30 Sekunden ein Bildschirmfoto, dazu eine Vorschau-Wand mit allen Monitoren
 - Status: online/offline, „Inhalt lädt nicht“, Versionen von Erweiterung und Browser
-- Pro Monitor: Zoom und automatisches Neuladen im Intervall
+- Pro Monitor: Zoom, automatisches Neuladen im Intervall, Ton aus und Mauszeiger ausblenden
+- Der Bildschirm bleibt an, auch wenn das Betriebssystem ihn sonst zum Energiesparen abschalten würde
 - Favoriten für häufige Adressen
 - Verlauf: welcher Monitor wann welchen Inhalt bekam (90 Tage)
 - E-Mail, wenn ein Monitor ausfällt und wenn er zurück ist
@@ -70,7 +71,9 @@ Geprüft wird bei jeder Anfrage eines Monitors. Fallen alle Monitore gleichzeiti
 
 Für den Autostart das Skript unter Linux in den Autostart der Desktop-Umgebung und unter Windows als Verknüpfung in den Ordner `shell:startup` legen. Unter Windows in den Eigenschaften der Verknüpfung **Ausführen: Minimiert** wählen, denn das Konsolenfenster bleibt für den automatischen Neustart geöffnet.
 
-Stürzt der Browser ab, starten ihn die Skripte nach 5 Sekunden neu. Wer ihn regulär mit `Alt+F4` schließt, beendet auch das Skript. Einen Mauszeiger über der Zielseite blendet unter Linux zum Beispiel `unclutter` aus.
+Stürzt der Browser ab, starten ihn die Skripte nach 5 Sekunden neu. Wer ihn regulär mit `Alt+F4` schließt, beendet auch das Skript.
+
+Den Mauszeiger blendet die Erweiterung standardmäßig aus. Willst du per Fernwartung etwas auf der Seite anklicken, schalte das in den Monitor-Einstellungen vorübergehend ab.
 
 **Erweiterung aktualisieren:** Den Ordner `extension/` ersetzen, die eigene `config.js` behalten und den Browser neu starten. Steht im Admin-Bereich „Erweiterung veraltet“, läuft auf dem Monitor noch eine ältere Version.
 

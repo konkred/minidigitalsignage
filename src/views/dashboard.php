@@ -150,6 +150,15 @@
                     </div>
                     <div class="form-text">0 schaltet das automatische Neuladen aus.</div>
                 </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="muted" id="monitor-muted">
+                    <label class="form-check-label" for="monitor-muted">Ton aus</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="hide_cursor" id="monitor-cursor">
+                    <label class="form-check-label" for="monitor-cursor">Mauszeiger ausblenden</label>
+                    <div class="form-text">Ausschalten, wenn du auf dem Monitor per Fernwartung etwas anklicken willst.</div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>

@@ -54,6 +54,8 @@ try {
             'rev' => (int) $monitor['rev'],
             'zoom' => (int) $monitor['zoom'],
             'reloadMinutes' => (int) $monitor['reload_minutes'],
+            'muted' => (bool) $monitor['muted'],
+            'hideCursor' => (bool) $monitor['hide_cursor'],
         ]);
 
     if (function_exists('fastcgi_finish_request')) {

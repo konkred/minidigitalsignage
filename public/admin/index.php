@@ -203,7 +203,10 @@ function handle_action(string $action): void
                 flash('danger', 'Bitte Name, Zoom (25 bis 500 %) und Neuladen (0 bis 1440 Minuten) prüfen.');
                 return;
             }
-            query('UPDATE monitors SET name = ?, zoom = ?, reload_minutes = ? WHERE id = ?', [$name, $zoom, $reload, $id]);
+            query(
+                'UPDATE monitors SET name = ?, zoom = ?, reload_minutes = ?, muted = ?, hide_cursor = ? WHERE id = ?',
+                [$name, $zoom, $reload, isset($_POST['muted']) ? 1 : 0, isset($_POST['hide_cursor']) ? 1 : 0, $id]
+            );
             flash('success', 'Die Einstellungen sind gespeichert.');
             return;
 
@@ -298,10 +301,14 @@ foreach (query('SELECT * FROM history ORDER BY at DESC, id DESC')->fetchAll() as
 }
 $onlineAfter = (int) $config['online_after'];
 
+$wall = ($_GET['view'] ?? '') === 'wall';
 if (isset($_GET['partial'])) {
     header('Cache-Control: no-store');
-    require __DIR__ . '/../../src/views/monitor_list.php';
+    require __DIR__ . '/../../src/views/' . ($_GET['partial'] === 'wall' ? 'wall_grid.php' : 'monitor_list.php');
     exit;
+}
+if ($wall) {
+    render('wall', compact('monitors', 'onlineAfter'));
 }
 
 $favorites = query('SELECT * FROM favorites ORDER BY name COLLATE NOCASE')->fetchAll();

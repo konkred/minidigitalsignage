@@ -22,6 +22,8 @@ function content_html(string $kind, ?string $content): string
         $monitor['browser'],
         (int) $monitor['zoom'] !== 100 ? 'Zoom ' . (int) $monitor['zoom'] . ' %' : null,
         (int) $monitor['reload_minutes'] > 0 ? 'Neuladen alle ' . (int) $monitor['reload_minutes'] . ' Min.' : null,
+        $monitor['muted'] ? 'Ton aus' : null,
+        $monitor['hide_cursor'] ? null : 'Mauszeiger sichtbar',
     ]);
     ?>
     <div class="card shadow-sm mb-3">
@@ -62,7 +64,8 @@ function content_html(string $kind, ?string $content): string
                                     data-kind="<?= h($monitor['kind']) ?>" data-content="<?= h($monitor['content']) ?>">Inhalt ändern</button>
                             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#monitor-modal"
                                     data-id="<?= $id ?>" data-name="<?= h($monitor['name']) ?>"
-                                    data-zoom="<?= (int) $monitor['zoom'] ?>" data-reload="<?= (int) $monitor['reload_minutes'] ?>">Einstellungen</button>
+                                    data-zoom="<?= (int) $monitor['zoom'] ?>" data-reload="<?= (int) $monitor['reload_minutes'] ?>"
+                                    data-muted="<?= (int) $monitor['muted'] ?>" data-hide-cursor="<?= (int) $monitor['hide_cursor'] ?>">Einstellungen</button>
                             <form method="post" class="m-0">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $id ?>">

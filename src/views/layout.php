@@ -9,18 +9,23 @@
 </head>
 <body class="bg-body-tertiary min-vh-100">
 <nav class="navbar bg-body border-bottom mb-4">
-    <div class="container">
+    <div class="<?= $view === 'wall' ? 'container-fluid px-4' : 'container' ?>">
         <a class="navbar-brand fw-semibold" href="./">Digital Signage</a>
-        <?php if ($view === 'dashboard'): ?>
+        <?php if ($view === 'dashboard' || $view === 'wall'): ?>
             <form method="post" class="m-0 d-flex gap-2">
                 <?= csrf_field() ?>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settings-modal">Einstellungen</button>
+                <?php if ($view === 'dashboard'): ?>
+                    <a class="btn btn-sm btn-outline-secondary" href="?view=wall">Vorschau-Wand</a>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settings-modal">Einstellungen</button>
+                <?php else: ?>
+                    <a class="btn btn-sm btn-outline-secondary" href="./">Zur Verwaltung</a>
+                <?php endif; ?>
                 <button class="btn btn-sm btn-outline-secondary" name="action" value="logout">Abmelden</button>
             </form>
         <?php endif; ?>
     </div>
 </nav>
-<main class="container pb-5">
+<main class="<?= $view === 'wall' ? 'container-fluid px-4' : 'container' ?> pb-5">
     <?php foreach ($flashes as [$type, $message]): ?>
         <div class="alert alert-<?= h($type) ?>" role="alert"><?= h($message) ?></div>
     <?php endforeach; ?>

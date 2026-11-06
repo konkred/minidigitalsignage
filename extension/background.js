@@ -62,10 +62,16 @@ async function apply(state, tab) {
     }
 }
 
-async function applyZoom(state, tab) {
+async function applyTabSettings(state, tab) {
+    if (state.status !== 'active') {
+        return;
+    }
     const zoom = (state.zoom ?? 100) / 100;
-    if (state.status === 'active' && Math.abs((await chrome.tabs.getZoom(tab.id)) - zoom) > 0.001) {
+    if (Math.abs((await chrome.tabs.getZoom(tab.id)) - zoom) > 0.001) {
         await chrome.tabs.setZoom(tab.id, zoom);
+    }
+    if (Boolean(state.muted) !== Boolean(tab.mutedInfo?.muted)) {
+        await chrome.tabs.update(tab.id, { muted: Boolean(state.muted) });
     }
 }
 
@@ -107,7 +113,7 @@ async function tick() {
         await chrome.storage.local.set({ state });
         const tab = await kioskTab();
         await apply(state, tab);
-        await applyZoom(state, tab).catch(() => {});
+        await applyTabSettings(state, tab).catch(() => {});
         await sendScreenshot(state, tab).catch(() => {});
     } catch (error) {
         console.error('Signage tick failed', error);
@@ -130,6 +136,9 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
         await chrome.storage.session.set({ loadError: false });
     }
 });
+
+// Verhindert, dass das Betriebssystem den Bildschirm nach der Energiespar-Zeit abschaltet.
+chrome.power.requestKeepAwake('display');
 
 chrome.runtime.onInstalled.addListener(tick);
 chrome.runtime.onStartup.addListener(tick);

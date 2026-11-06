@@ -56,6 +56,8 @@ if (changeModal) {
         field(monitorModal, 'name').value = data.name;
         field(monitorModal, 'zoom').value = data.zoom;
         field(monitorModal, 'reload_minutes').value = data.reload;
+        field(monitorModal, 'muted').checked = data.muted === '1';
+        field(monitorModal, 'hide_cursor').checked = data.hideCursor === '1';
         monitorModal.querySelector('.modal-title').textContent = `Einstellungen: ${data.name}`;
     });
 }
