@@ -1,9 +1,23 @@
 # Mini Digital Signage
 
-Weist Monitoren zentral eine Webseite zu. Die Adresse lässt sich sofort, nach einer Wartezeit oder zu einem festen Zeitpunkt ändern.
+Weist Monitoren zentral eine Webseite, eine Textnachricht oder ein Schwarzbild zu, sofort, nach einer Wartezeit oder zu einem festen Zeitpunkt.
 
-- **Server** (PHP und SQLite, ohne Build-Schritt und ohne Cron): Admin-Bereich unter `/admin` und Schnittstelle für die Monitore
-- **Browser-Erweiterung** auf jedem Monitor: fragt alle 5 Sekunden den Server und öffnet die zugewiesene Seite
+- **Server** (PHP und SQLite, ohne Build-Schritt): Admin-Bereich unter `/admin` und Schnittstelle für die Monitore
+- **Browser-Erweiterung** auf jedem Monitor: fragt alle 5 Sekunden den Server und zeigt den zugewiesenen Inhalt
+
+## Funktionen
+
+- Monitore per Code registrieren, benennen und entfernen
+- Inhalt: Webseite, große Textnachricht, Schwarzbild oder Standby-Bildschirm
+- Änderungen sofort, nach einer Wartezeit oder zu einem Zeitpunkt; geplante Änderungen bearbeiten oder abbrechen
+- Mehrere Monitore auf einmal ändern
+- Live-Vorschau: Jeder Monitor schickt alle 30 Sekunden ein Bildschirmfoto
+- Status: online/offline, „Inhalt lädt nicht“, Versionen von Erweiterung und Browser
+- Pro Monitor: Zoom und automatisches Neuladen im Intervall
+- Favoriten für häufige Adressen
+- Verlauf: welcher Monitor wann welchen Inhalt bekam (90 Tage)
+- E-Mail, wenn ein Monitor ausfällt und wenn er zurück ist
+- Passwort im Admin-Bereich ändern
 
 ## Warum eine Erweiterung?
 
@@ -21,13 +35,21 @@ Voraussetzung: PHP 8.1 oder neuer mit `pdo_sqlite`.
 4. `https://deine-subdomain/admin/` aufrufen. Beim ersten Aufruf entsteht die Datei `data/setup-key.txt`.
 5. Den Schlüssel aus dieser Datei im Dateimanager ablesen und zusammen mit dem neuen Passwort eingeben.
 
-Die Zeitzone steht in `config.php`.
+Zeitzone, Offline-Schwelle für Benachrichtigungen und Absenderadresse stehen in `config.php`.
 
 **Fehlermeldung „PHP kann src/ oder config.php nicht lesen“:** In den PHP-Einstellungen der Subdomain `open_basedir` auf `{WEBSPACEROOT}{/}{:}{TMP}{/}` setzen. Mit `{DOCROOT}` darf PHP nur in `public/` lesen.
 
 **Passwort vergessen:** `data/admin.pass` löschen und Schritt 4 wiederholen.
 
 **Datensicherung:** Alle Daten liegen in `data/`.
+
+**Update:** Alle Dateien außer `data/` ersetzen. Die Datenbank wird beim ersten Aufruf automatisch angepasst.
+
+### Benachrichtigungen
+
+Die E-Mail-Adresse trägst du im Admin-Bereich unter **Einstellungen** ein, dort gibt es auch eine Testnachricht. Versendet wird über die PHP-Mailfunktion des Webspace.
+
+Geprüft wird bei jeder Anfrage eines Monitors. Fallen alle Monitore gleichzeitig aus, etwa weil das Internet am Platz weg ist, fragt niemand mehr. Für diesen Fall in Plesk unter **Geplante Aufgaben** eine Aufgabe vom Typ **URL abrufen** anlegen, die jede Minute die Adresse aus den Einstellungen aufruft.
 
 ## Monitor einrichten
 
@@ -45,15 +67,15 @@ Die Zeitzone steht in `config.php`.
    - Windows: `kiosk\start-monitor.bat`
 5. Den angezeigten Code unter `/admin` eingeben.
 
-Für den Autostart das Skript unter Linux in den Autostart der Desktop-Umgebung und unter Windows in den Ordner `shell:startup` legen (Verknüpfung genügt).
+Für den Autostart das Skript unter Linux in den Autostart der Desktop-Umgebung und unter Windows als Verknüpfung in den Ordner `shell:startup` legen. Unter Windows in den Eigenschaften der Verknüpfung **Ausführen: Minimiert** wählen, denn das Konsolenfenster bleibt für den automatischen Neustart geöffnet.
 
-Das Vollbild beendest du mit `Alt+F4`. Einen Mauszeiger über der Zielseite blendet unter Linux zum Beispiel `unclutter` aus.
+Stürzt der Browser ab, starten ihn die Skripte nach 5 Sekunden neu. Wer ihn regulär mit `Alt+F4` schließt, beendet auch das Skript. Einen Mauszeiger über der Zielseite blendet unter Linux zum Beispiel `unclutter` aus.
 
-**Erweiterung aktualisieren:** Dateien ersetzen, `version` in `manifest.json` erhöhen und den Browser neu starten. Im Test lief bei unveränderter Version im selben Profil weiter der alte Code.
+**Erweiterung aktualisieren:** Den Ordner `extension/` ersetzen, die eigene `config.js` behalten und den Browser neu starten. Steht im Admin-Bereich „Erweiterung veraltet“, läuft auf dem Monitor noch eine ältere Version.
 
 ## Verhalten im Betrieb
 
-- **Server nicht erreichbar:** Die aktuelle Seite läuft weiter, Änderungen kommen an, sobald die Verbindung zurück ist.
-- **Inhalt nicht ladbar:** Statt der Browser-Fehlerseite erscheint ein neutraler Hinweis, alle 15 Sekunden folgt ein neuer Versuch.
+- **Server nicht erreichbar:** Der aktuelle Inhalt läuft weiter, Änderungen kommen an, sobald die Verbindung zurück ist.
+- **Inhalt nicht ladbar:** Statt der Browser-Fehlerseite erscheint ein neutraler Hinweis, alle 15 Sekunden folgt ein neuer Versuch. Im Admin-Bereich steht dann „Inhalt lädt nicht“.
 - **Geplante Änderungen:** Maßgeblich ist die Serverzeit, die Uhr des Monitors spielt keine Rolle. Ein Monitor, der zum geplanten Zeitpunkt aus war, übernimmt die Änderung beim nächsten Start.
 - **Unregistrierte Monitore:** Ein Code verfällt, wenn sich der Monitor eine Stunde lang nicht meldet. Danach bekommt er automatisch einen neuen.

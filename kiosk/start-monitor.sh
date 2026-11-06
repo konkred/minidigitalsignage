@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Startet den Browser im Vollbild als Signage-Monitor.
+# Startet den Browser im Vollbild als Signage-Monitor und nach einem Absturz neu.
+# Wer den Browser regulär schließt (Alt+F4), beendet auch das Skript.
 # Einmalig nach der Installation mit --setup aufrufen, wenn die Erweiterung
 # von Hand geladen werden muss (nötig bei Google Chrome).
-set -euo pipefail
+set -uo pipefail
 
 extension_dir="$(cd "$(dirname "$(readlink -f "$0")")/../extension" && pwd)"
 profile_dir="${XDG_CONFIG_HOME:-$HOME/.config}/signage-monitor"
@@ -26,14 +27,22 @@ if [[ "${1:-}" == "--setup" ]]; then
     exec "$browser" --user-data-dir="$profile_dir" --no-first-run chrome://extensions
 fi
 
-exec "$browser" \
-    --kiosk \
-    --user-data-dir="$profile_dir" \
-    --load-extension="$extension_dir" \
-    --no-first-run \
-    --noerrdialogs \
-    --disable-infobars \
-    --disable-session-crashed-bubble \
-    --disable-features=Translate \
-    --password-store=basic \
-    about:blank
+while true; do
+    "$browser" \
+        --kiosk \
+        --user-data-dir="$profile_dir" \
+        --load-extension="$extension_dir" \
+        --no-first-run \
+        --noerrdialogs \
+        --disable-infobars \
+        --disable-session-crashed-bubble \
+        --disable-features=Translate \
+        --password-store=basic \
+        about:blank
+    exit_code=$?
+    if [[ $exit_code -eq 0 ]]; then
+        break
+    fi
+    echo "Browser mit Code $exit_code beendet, Neustart in 5 Sekunden." >&2
+    sleep 5
+done

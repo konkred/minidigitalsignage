@@ -1,5 +1,6 @@
 @echo off
-rem Startet den Browser im Vollbild als Signage-Monitor.
+rem Startet den Browser im Vollbild als Signage-Monitor und nach einem Absturz neu.
+rem Wer den Browser regulaer schliesst (Alt+F4), beendet auch das Skript.
 rem Einmalig nach der Installation mit --setup aufrufen, wenn die Erweiterung
 rem von Hand geladen werden muss (noetig bei Google Chrome).
 setlocal
@@ -27,4 +28,10 @@ if /i "%~1"=="--setup" (
     exit /b 0
 )
 
-start "" "%BROWSER%" --kiosk --user-data-dir="%PROFILE_DIR%" --load-extension="%EXTENSION_DIR%" --no-first-run --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-features=Translate about:blank
+:loop
+start "" /wait "%BROWSER%" --kiosk --user-data-dir="%PROFILE_DIR%" --load-extension="%EXTENSION_DIR%" --no-first-run --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-features=Translate about:blank
+if errorlevel 1 (
+    echo Browser abgestuerzt, Neustart in 5 Sekunden.
+    timeout /t 5 /nobreak >nul
+    goto loop
+)

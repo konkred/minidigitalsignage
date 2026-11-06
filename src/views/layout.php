@@ -12,8 +12,9 @@
     <div class="container">
         <a class="navbar-brand fw-semibold" href="./">Digital Signage</a>
         <?php if ($view === 'dashboard'): ?>
-            <form method="post" class="m-0">
+            <form method="post" class="m-0 d-flex gap-2">
                 <?= csrf_field() ?>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settings-modal">Einstellungen</button>
                 <button class="btn btn-sm btn-outline-secondary" name="action" value="logout">Abmelden</button>
             </form>
         <?php endif; ?>

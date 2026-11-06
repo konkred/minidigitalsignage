@@ -32,6 +32,17 @@ function password_is_set(): bool
     return is_file(PASSWORD_FILE);
 }
 
+function password_matches(string $password): bool
+{
+    return password_verify($password, (string) file_get_contents(PASSWORD_FILE));
+}
+
+function save_password(string $password): void
+{
+    file_put_contents(PASSWORD_FILE, password_hash($password, PASSWORD_DEFAULT));
+    chmod(PASSWORD_FILE, 0600);
+}
+
 function setup_key(): string
 {
     if (!is_file(SETUP_KEY_FILE)) {

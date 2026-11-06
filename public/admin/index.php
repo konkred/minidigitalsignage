@@ -10,11 +10,10 @@ if (!@is_readable(__DIR__ . '/../../src/app.php') || !@is_readable(__DIR__ . '/.
 require __DIR__ . '/../../src/app.php';
 require __DIR__ . '/../../src/auth.php';
 
-header('Cache-Control: no-store');
 header('X-Robots-Tag: noindex');
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
-header("Content-Security-Policy: default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src https://cdn.jsdelivr.net; img-src data:; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
 
 start_admin_session();
 
@@ -28,6 +27,7 @@ function redirect_home(): never
 
 function render(string $view, array $vars = []): never
 {
+    header('Cache-Control: no-store');
     extract($vars);
     $flashes = take_flashes();
     require __DIR__ . '/../../src/views/layout.php';
@@ -49,8 +49,7 @@ if (!password_is_set()) {
         } elseif (strlen($password) < 10) {
             flash('danger', 'Das Passwort muss mindestens 10 Zeichen lang sein.');
         } else {
-            file_put_contents(PASSWORD_FILE, password_hash($password, PASSWORD_DEFAULT));
-            chmod(PASSWORD_FILE, 0600);
+            save_password($password);
             unlink(SETUP_KEY_FILE);
             log_in();
         }
@@ -60,7 +59,7 @@ if (!password_is_set()) {
 }
 
 if (!is_logged_in()) {
-    if (($_GET['partial'] ?? '') !== '' ) {
+    if (isset($_GET['partial']) || isset($_GET['screenshot'])) {
         http_response_code(401);
         exit;
     }
@@ -69,7 +68,7 @@ if (!is_logged_in()) {
             flash('danger', 'Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen.');
         } elseif (!csrf_is_valid()) {
             flash('danger', 'Die Sitzung ist abgelaufen. Bitte erneut versuchen.');
-        } elseif (password_verify((string) ($_POST['password'] ?? ''), (string) file_get_contents(PASSWORD_FILE))) {
+        } elseif (password_matches((string) ($_POST['password'] ?? ''))) {
             log_in();
         } else {
             record_login_failure();
@@ -80,13 +79,36 @@ if (!is_logged_in()) {
     render('login');
 }
 
-/** @return array{0: ?string, 1: ?string} Normalisierte URL und ggf. Fehlermeldung */
-function read_url(): array
+if (isset($_GET['screenshot'])) {
+    $file = screenshot_path((int) $_GET['screenshot']);
+    if (!is_file($file)) {
+        http_response_code(404);
+        exit;
+    }
+    // Die Adresse enthält den Aufnahmezeitpunkt, deshalb darf der Browser das Bild behalten.
+    header('Content-Type: image/jpeg');
+    header('Cache-Control: private, max-age=86400');
+    readfile($file);
+    exit;
+}
+
+/** @return array{0: ?string, 1: ?string, 2: ?string} Art, Inhalt und ggf. Fehlermeldung */
+function read_content(): array
 {
-    $url = normalize_url((string) ($_POST['url'] ?? ''));
-    return $url === null
-        ? [null, 'Bitte eine vollständige Adresse angeben, die mit http:// oder https:// beginnt.']
-        : [$url, null];
+    $kind = (string) ($_POST['kind'] ?? 'url');
+    if ($kind === 'url') {
+        $url = normalize_url((string) ($_POST['url'] ?? ''));
+        return $url === null || $url === ''
+            ? [null, null, 'Bitte eine vollständige Adresse angeben, die mit http:// oder https:// beginnt.']
+            : ['url', $url, null];
+    }
+    if ($kind === 'message') {
+        $message = trim(str_replace("\r\n", "\n", (string) ($_POST['message'] ?? '')));
+        return $message === '' || preg_match_all('/./us', $message) > 500
+            ? [null, null, 'Bitte eine Nachricht mit höchstens 500 Zeichen angeben.']
+            : ['message', $message, null];
+    }
+    return in_array($kind, CONTENT_KINDS, true) ? [$kind, null, null] : [null, null, 'Ungültige Inhaltsart.'];
 }
 
 /** @return array{0: ?int, 1: ?string} Zeitpunkt (null = sofort) und ggf. Fehlermeldung */
@@ -121,44 +143,68 @@ function handle_action(string $action): void
         case 'register':
             $code = normalize_code((string) ($_POST['code'] ?? ''));
             $name = trim((string) ($_POST['name'] ?? ''));
-            [$url, $error] = read_url();
-            if ($error || $name === '') {
-                flash('danger', $error ?? 'Bitte einen Namen angeben.');
+            $url = normalize_url((string) ($_POST['url'] ?? ''));
+            if ($url === null || $name === '') {
+                flash('danger', $url === null ? 'Bitte eine vollständige Adresse angeben, die mit http:// oder https:// beginnt.' : 'Bitte einen Namen angeben.');
                 return;
             }
-            $done = query(
-                'UPDATE monitors SET code = NULL, name = ?, url = ?, rev = rev + 1 WHERE code = ?',
-                [$name, $url === '' ? null : $url, $code]
-            )->rowCount();
-            $done
-                ? flash('success', "Monitor „{$name}“ wurde registriert.")
-                : flash('danger', 'Zu diesem Code wartet kein Monitor. Bitte den angezeigten Code prüfen.');
+            $monitorId = query('SELECT id FROM monitors WHERE code = ?', [$code])->fetchColumn();
+            if (!$monitorId) {
+                flash('danger', 'Zu diesem Code wartet kein Monitor. Bitte den angezeigten Code prüfen.');
+                return;
+            }
+            query('UPDATE monitors SET code = NULL, name = ? WHERE id = ?', [$name, $monitorId]);
+            set_monitor_content((int) $monitorId, $url === '' ? 'standby' : 'url', $url === '' ? null : $url, 'Registrierung');
+            flash('success', "Monitor „{$name}“ wurde registriert.");
             return;
 
         case 'change':
-            [$url, $error] = read_url();
+            [$kind, $content, $error] = read_content();
             [$at, $timeError] = read_activation_time();
             if ($error || $timeError) {
                 flash('danger', $error ?? $timeError);
                 return;
             }
-            $url = $url === '' ? null : $url;
-            if ($at === null) {
-                query('UPDATE monitors SET url = ?, rev = rev + 1 WHERE id = ? AND code IS NULL', [$url, $id]);
-                flash('success', 'Die Änderung wird in wenigen Sekunden angezeigt.');
-            } else {
-                query('INSERT INTO changes (monitor_id, url, activate_at) VALUES (?, ?, ?)', [$id, $url, $at]);
-                flash('success', 'Die Änderung ist für ' . format_time($at) . ' Uhr geplant.');
-            }
-            return;
-
-        case 'rename':
-            $name = trim((string) ($_POST['name'] ?? ''));
-            if ($name === '') {
-                flash('danger', 'Bitte einen Namen angeben.');
+            $changeId = (int) ($_POST['change_id'] ?? 0);
+            if ($changeId) {
+                $change = query('SELECT * FROM changes WHERE id = ?', [$changeId])->fetch();
+                if (!$change) {
+                    flash('danger', 'Diese geplante Änderung gibt es nicht mehr.');
+                } elseif ($at === null) {
+                    query('DELETE FROM changes WHERE id = ?', [$changeId]);
+                    set_monitor_content((int) $change['monitor_id'], $kind, $content, 'Sofort');
+                    flash('success', 'Die Änderung wird in wenigen Sekunden angezeigt.');
+                } else {
+                    query('UPDATE changes SET kind = ?, content = ?, activate_at = ? WHERE id = ?', [$kind, $content, $at, $changeId]);
+                    flash('success', 'Die Änderung ist jetzt für ' . format_time($at) . ' Uhr geplant.');
+                }
                 return;
             }
-            query('UPDATE monitors SET name = ? WHERE id = ?', [$name, $id]);
+            $ids = array_unique(array_map('intval', (array) ($_POST['ids'] ?? [])));
+            if (!$ids) {
+                flash('danger', 'Bitte mindestens einen Monitor auswählen.');
+                return;
+            }
+            foreach ($ids as $monitorId) {
+                $at === null
+                    ? set_monitor_content($monitorId, $kind, $content, 'Sofort')
+                    : query('INSERT INTO changes (monitor_id, kind, content, activate_at) VALUES (?, ?, ?, ?)', [$monitorId, $kind, $content, $at]);
+            }
+            flash('success', $at === null
+                ? 'Die Änderung wird in wenigen Sekunden angezeigt.'
+                : 'Die Änderung ist für ' . format_time($at) . ' Uhr geplant.');
+            return;
+
+        case 'monitor_settings':
+            $name = trim((string) ($_POST['name'] ?? ''));
+            $zoom = filter_var($_POST['zoom'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 25, 'max_range' => 500]]);
+            $reload = filter_var($_POST['reload_minutes'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 1440]]);
+            if ($name === '' || $zoom === false || $reload === false) {
+                flash('danger', 'Bitte Name, Zoom (25 bis 500 %) und Neuladen (0 bis 1440 Minuten) prüfen.');
+                return;
+            }
+            query('UPDATE monitors SET name = ?, zoom = ?, reload_minutes = ? WHERE id = ?', [$name, $zoom, $reload, $id]);
+            flash('success', 'Die Einstellungen sind gespeichert.');
             return;
 
         case 'reload':
@@ -172,7 +218,56 @@ function handle_action(string $action): void
 
         case 'delete':
             query('DELETE FROM monitors WHERE id = ?', [$id]);
+            @unlink(screenshot_path($id));
             flash('success', 'Der Monitor wurde entfernt und zeigt wieder einen Registriercode.');
+            return;
+
+        case 'favorite_add':
+            $name = trim((string) ($_POST['name'] ?? ''));
+            $url = normalize_url((string) ($_POST['url'] ?? ''));
+            if ($name === '' || !$url) {
+                flash('danger', 'Bitte einen Namen und eine vollständige Adresse angeben.');
+                return;
+            }
+            query('INSERT INTO favorites (name, url) VALUES (?, ?)', [$name, $url]);
+            flash('success', "Favorit „{$name}“ wurde gespeichert.");
+            return;
+
+        case 'favorite_delete':
+            query('DELETE FROM favorites WHERE id = ?', [$id]);
+            return;
+
+        case 'notify':
+            $email = trim((string) ($_POST['email'] ?? ''));
+            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                flash('danger', 'Bitte eine gültige E-Mail-Adresse angeben.');
+                return;
+            }
+            set_setting('notify_email', $email === '' ? null : $email);
+            flash('success', $email === '' ? 'Benachrichtigungen sind ausgeschaltet.' : 'Benachrichtigungen gehen an ' . $email . '.');
+            return;
+
+        case 'test_mail':
+            $email = setting('notify_email');
+            if (!$email) {
+                flash('danger', 'Bitte zuerst eine E-Mail-Adresse speichern.');
+            } elseif (send_mail($email, 'Test der Benachrichtigung', "Diese Testnachricht kommt aus dem Admin-Bereich von Digital Signage.\n")) {
+                flash('success', 'Die Testnachricht wurde an ' . $email . ' übergeben. Bitte auch den Spam-Ordner prüfen.');
+            } else {
+                flash('danger', 'Der Server konnte die E-Mail nicht versenden. Bitte die Mail-Einstellungen in Plesk prüfen.');
+            }
+            return;
+
+        case 'password':
+            $new = (string) ($_POST['new_password'] ?? '');
+            if (!password_matches((string) ($_POST['current_password'] ?? ''))) {
+                flash('danger', 'Das aktuelle Passwort ist falsch.');
+            } elseif (strlen($new) < 10) {
+                flash('danger', 'Das neue Passwort muss mindestens 10 Zeichen lang sein.');
+            } else {
+                save_password($new);
+                flash('success', 'Das Passwort wurde geändert.');
+            }
             return;
     }
     flash('danger', 'Unbekannte Aktion.');
@@ -188,17 +283,32 @@ if ($method === 'POST') {
 }
 
 apply_due_changes();
+check_offline_notifications();
 
 $monitors = query('SELECT * FROM monitors WHERE code IS NULL ORDER BY name COLLATE NOCASE')->fetchAll();
 $changes = [];
 foreach (query('SELECT * FROM changes ORDER BY activate_at, id')->fetchAll() as $change) {
     $changes[$change['monitor_id']][] = $change;
 }
+$history = [];
+foreach (query('SELECT * FROM history ORDER BY at DESC, id DESC')->fetchAll() as $entry) {
+    if (count($history[$entry['monitor_id']] ?? []) < 15) {
+        $history[$entry['monitor_id']][] = $entry;
+    }
+}
 $onlineAfter = (int) $config['online_after'];
 
-if (($_GET['partial'] ?? '') === 'list') {
+if (isset($_GET['partial'])) {
+    header('Cache-Control: no-store');
     require __DIR__ . '/../../src/views/monitor_list.php';
     exit;
 }
 
-render('dashboard', compact('monitors', 'changes', 'onlineAfter'));
+$favorites = query('SELECT * FROM favorites ORDER BY name COLLATE NOCASE')->fetchAll();
+$notifyEmail = setting('notify_email');
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scheme = ($_SERVER['HTTPS'] ?? '') === 'on' ? 'https' : 'http';
+$cronUrl = "$scheme://$host" . dirname($_SERVER['SCRIPT_NAME'], 2) . '/api/check.php?key=' . cron_key();
+$cronUrl = str_replace('//api', '/api', $cronUrl);
+
+render('dashboard', compact('monitors', 'changes', 'history', 'onlineAfter', 'favorites', 'notifyEmail', 'cronUrl'));
