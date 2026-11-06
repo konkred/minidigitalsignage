@@ -23,6 +23,8 @@ Voraussetzung: PHP 8.1 oder neuer mit `pdo_sqlite`.
 
 Die Zeitzone steht in `config.php`.
 
+**Fehlermeldung „PHP kann src/ oder config.php nicht lesen“:** In den PHP-Einstellungen der Subdomain `open_basedir` auf `{WEBSPACEROOT}{/}{:}{TMP}{/}` setzen. Mit `{DOCROOT}` darf PHP nur in `public/` lesen.
+
 **Passwort vergessen:** `data/admin.pass` löschen und Schritt 4 wiederholen.
 
 **Datensicherung:** Alle Daten liegen in `data/`.

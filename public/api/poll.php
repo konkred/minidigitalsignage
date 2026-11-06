@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+// Ohne diese Prüfung endet eine open_basedir-Sperre in Plesk in einer leeren Fehlerseite.
+if (!@is_readable(__DIR__ . '/../../src/app.php') || !@is_readable(__DIR__ . '/../../config.php')) {
+    http_response_code(500);
+    exit('PHP kann src/ oder config.php nicht lesen. In Plesk unter PHP-Einstellungen open_basedir auf {WEBSPACEROOT}{/}{:}{TMP}{/} setzen und prüfen, ob beide neben public/ liegen.');
+}
+
 require __DIR__ . '/../../src/app.php';
 
 header('Content-Type: application/json');
