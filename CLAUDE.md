@@ -37,4 +37,5 @@ Der Admin-Bereich liegt dann unter `http://127.0.0.1:8099/admin/`. Für die Erwe
 - Google Chrome ignoriert `--load-extension` seit Version 137. Automatisiert geht das Laden über `--remote-debugging-pipe`, `--enable-unsafe-extension-debugging` und den CDP-Befehl `Extensions.loadUnpacked`.
 - Bei gleicher `version` im Manifest lief im selben Profil weiter der alte Hintergrundcode. Nach Änderungen an der Erweiterung die Version erhöhen oder mit frischem Profil testen.
 - `php -S` bedient standardmäßig nur eine Verbindung gleichzeitig. Vorab geöffnete Chrome-Verbindungen können ein lokales Testziel dadurch um Sekunden blockieren. Abhilfe: `PHP_CLI_SERVER_WORKERS=4`.
-- Bisher nicht getestet: Plesk mit HTTPS, die Startskripte im Kiosk-Modus, Chromium und Windows LTSC.
+- Im Praxistest am 6. Nov. 2026 lief es auf Plesk mit HTTPS (PHP 8.4). Die Testseiten waren eine echte TORIS-Startertafel und YouTube.
+- Bisher nicht getestet: die Startskripte im Kiosk-Modus, Chromium und Windows LTSC.
